@@ -1,0 +1,16 @@
+name = "my-app"
+type = "javascript"
+zone_id = ""
+account_id = ""
+route = ""
+workers_dev = true
+compatibility_date = "2022-01-17"
+vars = { SiteName = "小幻工具箱",Description="网络工具集",Keywords="工具,哔哩哔哩自动签到,小幻" }
+kv_namespaces = [
+  { binding = "MykvDB", id = "5b3c6cd430ad46aab4e968a3ad8b4a24", preview_id = "5b3c6cd430ad46aab4e968a3ad8b4a24" }
+]
+[build]
+command = "npm install && npm run build"
+[build.upload]
+format = "service-worker"
+

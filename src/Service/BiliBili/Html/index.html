@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="{{keywords}}" />
+    <meta name="description" content="{{description}}" />
+    <title>{{title}}-比利比利签到</title>
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+    <!-- jQuery (Bootstrap 的所有 JavaScript 插件都依赖 jQuery，所以必须放在前边) -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
+    <!-- HTML5 shim 和 Respond.js 是为了让 IE8 支持 HTML5 元素和媒体查询（media queries）功能 -->
+    <!-- 警告：通过 file:// 协议（就是直接将 html 页面拖拽到浏览器中）访问页面时 Respond.js 不起作用 -->
+    <!--[if lt IE 9]>
+       <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+       <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+     <![endif]-->
+    <style>
+        .container {}
+        
+        #qrcode {
+            margin: 0 auto;
+            width: 150px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <nav class="navbar navbar-default">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">B站自动签到</a>
+            </div>
+        </nav>
+    </div>
+    <!-- /.container-fluid -->
+    </nav>
+    <div class="col-md-6 col-md-offset-3 qrcode-container" id="view">
+        <div class="col-md-12" style="text-align: center;padding-bottom: 3px;">{{serverinfo}}</div>
+        <div id="qr_view">
+            <div id="qrcode" title="点击刷新！"></div>
+            <div class="text-center">请使用BILIBILI APP 扫码登录</div>
+            <div class="col-lg-6  col-md-offset-3">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="token" placeholder="token">
+                    <span class="input-group-btn">
+                  <button class="btn btn-default" type="button" id="tokenGo">Go!</button>
+                </span>
+                </div>
+            </div>
+            <div id="msg"></div>
+
+        </div>
+        <div id="data" style="display: none;">
+            <div>
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation" class="active"><a href="#logsv" aria-controls="logsv" role="tab" data-toggle="tab">日志</a></li>
+                    <li role="presentation"><a href="#operation" aria-controls="operation" role="tab" data-toggle="tab">操作</a></li>
+                </ul>
+
+                <!-- Tab panes -->
+                <div class="tab-content">
+                    <div role="tabpanel" class="tab-pane active" id="logsv">
+                        <pre id="logtext" style="height: 300px;"></pre>
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="operation">
+                        <div class="checkbox">
+                            <label>
+                              <input type="checkbox" id="Sign" value="true">
+                              自动签到
+                            </label>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+    <script>
+        $(function() {
+            var BiliHelper = {
+                // 当前用户token
+                token: "",
+                checkQrCodeStatus: null,
+                //二维码对象
+                qrcode: null,
+                //扫码的key
+                key: null,
+                //获取登录二维码
+                loadQrcode: function() {
+                    var self = this;
+                    $.get('/bili/getLoginUrl', function(res) {
+                        if (res.code == 200) {
+                            self.qrcode.clear(); // 清除代码
+                            self.qrcode.makeCode(res.data.url);
+                            self.qrcode._el.title = '点击刷新二维码'
+                            self.key = res.data.oauthKey;
+                        } else {
+                            alert(res.msg)
+                        }
+                    }, 'json');
+                },
+                //加载日志
+                loadlogs: function() {
+                    //获取日志
+                    $.get('/bili/getlogs?pwd=' + this.token, function(res) {
+                        $('#data').show()
+                        $('#logs').empty();
+                        if (res.code == 200) {
+                            var logs = res.data;
+                            $('#logtext').append(logs.join('\r\n'))
+                        }
+                    }, 'json')
+                },
+                loginSucess: function() {
+                    $('#qr_view').remove();
+                    $('#data').show()
+                    clearInterval(this.checkQrCodeStatus);
+                    this.loadlogs();
+                },
+                checkqrcode: function() {
+                    var self = this;
+                    this.checkQrCodeStatus = setInterval(() => {
+                        if (!!this.key) {
+                            $.get('/bili/getLoginInfo?code=' + this.key, function(res) {
+                                if (res.code == 200) {
+                                    if (!!res.data.pwd) {
+                                        self.loginSucess()
+                                    }
+                                } else {
+                                    alert(res.msg)
+                                }
+                            }, 'json');
+                        }
+                    }, 3000);
+                },
+                //使用token登录
+                tokenLogin: function() {
+                    var self = this;
+                    var token = $('#token').val()
+                    $.get('/bili/getInfo?pwd=' + token, function(res) {
+                        if (res.code == 200) {
+                            self.token = token
+                            self.loginSucess();
+                        } else {
+                            alert(res.msg)
+                        }
+                    }, 'json');
+                },
+                init: function() {
+                    var self = this;
+                    //二维码对象
+                    this.qrcode = new QRCode(document.getElementById("qrcode"), {
+                        width: 150,
+                        height: 150
+                    });
+                    //加载二维码
+                    this.loadQrcode();
+                    //循环检测二维码
+                    this.checkqrcode();
+                    $('#tokenGo').click(function() {
+                        self.tokenLogin()
+                    })
+
+
+                }
+            }
+
+            BiliHelper.init();
+        });
+    </script>
+    <!-- 加载 Bootstrap 的所有 JavaScript 插件。你也可以根据需要只加载单个插件。 -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+</body>
+
+</html>
