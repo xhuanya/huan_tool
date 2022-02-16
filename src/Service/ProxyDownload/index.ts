@@ -21,7 +21,7 @@ export async function ProxyDownloadInit(route: Router<unknown>) {
              
                 if (!result.headers.get('Content-Disposition')) {
                     let head=new Headers();
-                    let fileName = url.substring(url.lastIndexOf("/") + 1)
+                    let fileName = urlobj.pathname.substring(urlobj.pathname.lastIndexOf("/") + 1)
                     head.append('Content-type','application/octet-stream');
                     head.append('Accept-ranges','bytes');
                     head.append('Content-Disposition', 'attachment;filename=' + fileName);
