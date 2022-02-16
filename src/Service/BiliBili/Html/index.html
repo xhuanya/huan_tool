@@ -41,6 +41,7 @@
     </nav>
     <div class="col-md-6 col-md-offset-3 qrcode-container" id="view">
         <div class="col-md-12" style="text-align: center;padding-bottom: 3px;">{{serverinfo}}</div>
+        <div id="notice"></div>
         <div id="qr_view">
             <div id="qrcode" title="点击刷新！"></div>
             <div class="text-center">请使用BILIBILI APP 扫码登录</div>
@@ -132,6 +133,8 @@
                             $.get('/bili/getLoginInfo?code=' + this.key, function(res) {
                                 if (res.code == 200) {
                                     if (!!res.data.pwd) {
+                                        self.token = res.data.pwd
+                                        $('#notice').html('Token:' + res.data.pwd)
                                         self.loginSucess()
                                     }
                                 } else {
